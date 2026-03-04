@@ -40,7 +40,7 @@
   }
   
   .brand-logo {
-    width: clamp(120px, 26vw, 200px); /* responsive sizing */
+    width: clamp(120px, 26vw, 200px);
     height: auto;
     display: block;
   }
@@ -140,8 +140,8 @@
     color: #444;
   }
   
-  /* PRIMARY BUTTON */
-  #nextBtn {
+  /* PRIMARY BUTTON (used for Start + Next/Learn more) */
+  .primaryBtn {
     margin-top: 14px;
     width: 100%;
     border: none;
@@ -155,10 +155,10 @@
     transition: filter 0.15s ease, transform 0.06s ease;
   }
   
-  #nextBtn:hover { filter: brightness(0.96); }
-  #nextBtn:active { transform: translateY(1px); }
+  .primaryBtn:hover { filter: brightness(0.96); }
+  .primaryBtn:active { transform: translateY(1px); }
   
-  #nextBtn:disabled {
+  .primaryBtn:disabled {
     cursor: not-allowed;
     opacity: 0.55;
   }
@@ -223,3 +223,4 @@
       text-align: center;
     }
   }
+  
