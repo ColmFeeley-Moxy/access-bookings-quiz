@@ -15,6 +15,12 @@ const nextBtn = document.getElementById("nextBtn");
 const progressEl = document.getElementById("progress");
 const scoreEl = document.getElementById("score");
 
+// Defensive: if any key element is missing, fail loudly
+if (!loginSection || !quizSection || !loginForm || !nameInput || !emailInput || !loginError ||
+    !welcomeEl || !questionEl || !choicesEl || !feedbackEl || !nextBtn || !progressEl || !scoreEl) {
+  throw new Error("Quiz app failed to initialise: a required DOM element is missing.");
+}
+
 // --- CONFIG ---
 const API_BASE_URL = "https://zp13fu2v8g.execute-api.eu-west-2.amazonaws.com";
 const SAVE_RESULTS_URL = `${API_BASE_URL}/results`;
@@ -80,8 +86,12 @@ const quiz = [
 // --- STATE ---
 let user = null;
 let currentIndex = 0;
-let locked = false;
 let score = 0;
+
+// This holds the *exact* shuffled question currently on screen
+let activeQuestion = null;
+// This prevents double-answering
+let answeredThisQuestion = false;
 
 // --- HELPER: shuffle answers (keeps correct answer correct) ---
 function shuffleAnswers(question) {
@@ -122,32 +132,33 @@ function updateMeta() {
 }
 
 function renderQuestion() {
-  locked = false;
+  answeredThisQuestion = false;
   feedbackEl.textContent = "";
   nextBtn.disabled = true;
   nextBtn.textContent = currentIndex === quiz.length - 1 ? "Finish" : "Next";
 
   updateMeta();
 
-  const q = shuffleAnswers(quiz[currentIndex]);
+  activeQuestion = shuffleAnswers(quiz[currentIndex]);
 
-  questionEl.textContent = q.question;
+  questionEl.textContent = activeQuestion.question;
   choicesEl.innerHTML = "";
 
-  q.choices.forEach((text, i) => {
+  activeQuestion.choices.forEach((text, i) => {
     const btn = document.createElement("button");
     btn.className = "choice";
     btn.type = "button";
     btn.textContent = text;
-    btn.addEventListener("click", () => handleChoice(i, q));
+    btn.addEventListener("click", () => handleChoice(i));
     choicesEl.appendChild(btn);
   });
 }
 
-function handleChoice(selectedIndex, q) {
-  if (locked) return;
-  locked = true;
+function handleChoice(selectedIndex) {
+  if (answeredThisQuestion) return;
+  answeredThisQuestion = true;
 
+  const q = activeQuestion;
   const buttons = Array.from(choicesEl.querySelectorAll("button"));
 
   buttons.forEach((b, i) => {
@@ -159,7 +170,7 @@ function handleChoice(selectedIndex, q) {
     score += 1;
     feedbackEl.textContent = "✅ Correct!";
   } else {
-    buttons[selectedIndex].classList.add("wrong");
+    if (buttons[selectedIndex]) buttons[selectedIndex].classList.add("wrong");
     feedbackEl.textContent = `❌ Correct answer: ${q.choices[q.correctIndex]}`;
   }
 
@@ -181,7 +192,6 @@ async function saveResultToAWS() {
     body: JSON.stringify(payload),
   });
 
-  // If someone already submitted, backend returns 409
   if (res.status === 409) {
     return { status: "already_submitted" };
   }
@@ -233,7 +243,6 @@ async function renderResultsAndSave() {
 function startQuiz() {
   currentIndex = 0;
   score = 0;
-  locked = false;
 
   welcomeEl.textContent = `Welcome, ${user.name}`;
 
@@ -266,8 +275,9 @@ loginForm.addEventListener("submit", (e) => {
   startQuiz();
 });
 
+// IMPORTANT: proceed based on button state, not a fragile flag
 nextBtn.addEventListener("click", () => {
-  if (!locked) return;
+  if (nextBtn.disabled) return;
 
   if (currentIndex === quiz.length - 1) {
     renderResultsAndSave();

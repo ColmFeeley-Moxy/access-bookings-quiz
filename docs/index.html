@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Access Booking Training Quiz</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./styles.css?v=3" />
 </head>
 
 <body>
@@ -37,7 +37,6 @@
 
         <div id="loginError" aria-live="polite"></div>
 
-        <!-- IMPORTANT: no id here -->
         <button class="primaryBtn" type="submit">Start quiz</button>
       </form>
     </section>
@@ -54,12 +53,11 @@
       <div id="choices"></div>
       <div id="feedback"></div>
 
-      <!-- IMPORTANT: only ONE nextBtn on the page -->
       <button id="nextBtn" class="primaryBtn" type="button" disabled>Next</button>
     </section>
 
   </main>
 
-  <script src="./app.js"></script>
+  <script src="./app.js?v=3"></script>
 </body>
 </html>
