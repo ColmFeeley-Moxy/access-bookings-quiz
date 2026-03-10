@@ -113,10 +113,10 @@ function setScreen(which) {
 
 function getResultMessage(s, total) {
   const pct = s / total;
-  if (pct === 1)   return "Perfect score! You're a Hotel Co 51 expert. 🌟";
-  if (pct >= 0.8)  return "Excellent work — you clearly know your brands!";
-  if (pct >= 0.6)  return "Good effort! A little more time with the portfolio and you'll nail it.";
-  if (pct >= 0.4)  return "A decent start — revisit the Hotel Co 51 brand guide to sharpen up.";
+  if (pct === 1)  return "Perfect score! You're a Hotel Co 51 expert. 🌟";
+  if (pct >= 0.8) return "Excellent work — you clearly know your brands!";
+  if (pct >= 0.6) return "Good effort! A little more time with the portfolio and you'll nail it.";
+  if (pct >= 0.4) return "A decent start — revisit the Hotel Co 51 brand guide to sharpen up.";
   return "Worth another look at the brand portfolio before your next booking.";
 }
 
@@ -232,7 +232,6 @@ async function showResults() {
   document.getElementById("resultsMsg").textContent = getResultMessage(score, quiz.length);
 
   progressFill.style.width = "100%";
-
   setScreen("results");
 
   const saveStatus = document.getElementById("saveStatus");
@@ -323,188 +322,121 @@ function startQuiz() {
 
 setScreen("login");
 
-// ── Floating image physics ────────────────────────────────
+// ── Aurora Background ─────────────────────────────────────
 
-(function initFloatingPhysics() {
+(function initAurora() {
+  const canvas = document.getElementById("auroraCanvas");
+  const ctx = canvas.getContext("2d");
 
-  const configs = [
-    { selector: ".blue",  renderSize: 220, shape: "circle", rotates: false },
-    { selector: ".green", renderSize: 200, shape: "circle", rotates: false },
-    { selector: ".dots",  renderSize: 155, shape: "box",    rotates: false },
-    { selector: ".slash", renderSize: 460, shape: "box",    rotates: true  },
+  // Brand colour palette — warm oranges, soft greens, muted blues, dusty pinks
+  const brandColours = [
+    "#DE9941", // orange
+    "#EBB677", // light orange
+    "#F3CB98", // cream
+    "#A0CB6E", // green
+    "#BAD797", // light green
+    "#AFD385", // mid green
+    "#6974B5", // blue
+    "#848EC2", // mid blue
+    "#A1A6CD", // light blue
+    "#C66678", // pink
+    "#D39EAA", // light pink
+    "#CA8291", // mid pink
   ];
 
-  const floats = configs.map(c => ({
-    ...c,
-    el: document.querySelector(c.selector),
-    x: 0, y: 0,
-    dx: 0, dy: 0,
-    w: 0, h: 0,
-    radius: 0,
-    angle: 0,
-    dAngle: 0,
-  }));
+  // Each blob: position, size, colour, drift velocity, phase offset for breathing
+  const BLOB_COUNT = 7;
+  let blobs = [];
 
-  function init() {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    floats.forEach((f, i) => {
-      const rect = f.el.getBoundingClientRect();
-      f.w = rect.width  || f.renderSize;
-      f.h = rect.height || f.renderSize;
-      f.radius = Math.min(f.w, f.h) / 2;
-
-      f.x = (vw * 0.15) + (i / floats.length) * (vw * 0.7);
-      f.y = (vh * 0.1)  + Math.random() * (vh * 0.7);
-
-      const speed = 0.45 + Math.random() * 0.45;
-      const angle = (Math.PI * 2 / floats.length) * i + Math.random() * 0.8;
-      f.dx = Math.cos(angle) * speed;
-      f.dy = Math.sin(angle) * speed;
-
-      f.angle  = Math.random() * 360;
-      f.dAngle = f.rotates ? (0.06 + Math.random() * 0.06) : 0;
-    });
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return { r, g, b };
   }
 
-  function resolveCircleCircle(a, b) {
-    const ax = a.x + a.w / 2;
-    const ay = a.y + a.h / 2;
-    const bx = b.x + b.w / 2;
-    const by = b.y + b.h / 2;
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
 
-    const distX = bx - ax;
-    const distY = by - ay;
-    const dist  = Math.sqrt(distX * distX + distY * distY);
-    const minDist = a.radius + b.radius;
-
-    if (dist < minDist && dist > 0) {
-      const nx = distX / dist;
-      const ny = distY / dist;
-      const dvx = a.dx - b.dx;
-      const dvy = a.dy - b.dy;
-      const dot = dvx * nx + dvy * ny;
-
-      if (dot > 0) {
-        a.dx -= dot * nx;
-        a.dy -= dot * ny;
-        b.dx += dot * nx;
-        b.dy += dot * ny;
-      }
-
-      const overlap = (minDist - dist) / 2 + 0.5;
-      a.x -= nx * overlap;
-      a.y -= ny * overlap;
-      b.x += nx * overlap;
-      b.y += ny * overlap;
+  function initBlobs() {
+    blobs = [];
+    for (let i = 0; i < BLOB_COUNT; i++) {
+      const colour = brandColours[Math.floor(Math.random() * brandColours.length)];
+      const rgb = hexToRgb(colour);
+      blobs.push({
+        x:      Math.random() * canvas.width,
+        y:      Math.random() * canvas.height,
+        // Base radius — large soft blobs
+        baseR:  canvas.width * (0.22 + Math.random() * 0.22),
+        // Breathing amplitude
+        breathAmp: canvas.width * (0.04 + Math.random() * 0.06),
+        // Individual drift speeds — very slow
+        dx: (Math.random() - 0.5) * 0.28,
+        dy: (Math.random() - 0.5) * 0.28,
+        // Phase for breathing animation, staggered
+        phase: Math.random() * Math.PI * 2,
+        // Breathing speed
+        breathSpeed: 0.003 + Math.random() * 0.003,
+        r: rgb.r,
+        g: rgb.g,
+        b: rgb.b,
+        // Max opacity — keep translucent so blobs layer beautifully
+        opacity: 0.13 + Math.random() * 0.10,
+      });
     }
   }
 
-  function resolveBoxBox(a, b) {
-    const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
-    const overlapY = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  let t = 0;
 
-    if (overlapX > 0 && overlapY > 0) {
-      if (overlapX < overlapY) {
-        const temp = a.dx; a.dx = b.dx; b.dx = temp;
-        const nudge = overlapX / 2 + 1;
-        if (a.x < b.x) { a.x -= nudge; b.x += nudge; }
-        else            { a.x += nudge; b.x -= nudge; }
-      } else {
-        const temp = a.dy; a.dy = b.dy; b.dy = temp;
-        const nudge = overlapY / 2 + 1;
-        if (a.y < b.y) { a.y -= nudge; b.y += nudge; }
-        else            { a.y += nudge; b.y -= nudge; }
-      }
-    }
-  }
+  function draw() {
+    t++;
 
-  function resolveCircleBox(circle, box) {
-    const cx = circle.x + circle.w / 2;
-    const cy = circle.y + circle.h / 2;
-    const closestX = Math.max(box.x, Math.min(cx, box.x + box.w));
-    const closestY = Math.max(box.y, Math.min(cy, box.y + box.h));
+    // Fill base background colour
+    ctx.fillStyle = "#F3CB98";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const distX = cx - closestX;
-    const distY = cy - closestY;
-    const dist  = Math.sqrt(distX * distX + distY * distY);
+    // Draw each blob as a large radial gradient circle
+    blobs.forEach(blob => {
+      // Breathing: radius pulses gently
+      blob.phase += blob.breathSpeed;
+      const r = blob.baseR + Math.sin(blob.phase) * blob.breathAmp;
 
-    if (dist < circle.radius && dist > 0) {
-      const nx = distX / dist;
-      const ny = distY / dist;
-      const dvx = circle.dx - box.dx;
-      const dvy = circle.dy - box.dy;
-      const dot = dvx * nx + dvy * ny;
+      // Drift
+      blob.x += blob.dx;
+      blob.y += blob.dy;
 
-      if (dot > 0) {
-        circle.dx -= dot * nx;
-        circle.dy -= dot * ny;
-        box.dx    += dot * nx;
-        box.dy    += dot * ny;
-      }
+      // Soft wrap-around — blobs reappear on the other side rather than bouncing
+      if (blob.x < -r)             blob.x = canvas.width  + r;
+      if (blob.x >  canvas.width  + r) blob.x = -r;
+      if (blob.y < -r)             blob.y = canvas.height + r;
+      if (blob.y >  canvas.height + r) blob.y = -r;
 
-      const overlap = (circle.radius - dist) / 2 + 0.5;
-      circle.x -= nx * overlap;
-      circle.y -= ny * overlap;
-      box.x    += nx * overlap;
-      box.y    += ny * overlap;
-    }
-  }
+      // Radial gradient: colour at centre fading to transparent
+      const grad = ctx.createRadialGradient(
+        blob.x, blob.y, 0,
+        blob.x, blob.y, r
+      );
+      grad.addColorStop(0,   `rgba(${blob.r},${blob.g},${blob.b},${blob.opacity})`);
+      grad.addColorStop(0.5, `rgba(${blob.r},${blob.g},${blob.b},${blob.opacity * 0.5})`);
+      grad.addColorStop(1,   `rgba(${blob.r},${blob.g},${blob.b},0)`);
 
-  function resolveCollision(a, b) {
-    if (a.shape === "circle" && b.shape === "circle") {
-      resolveCircleCircle(a, b);
-    } else if (a.shape === "box" && b.shape === "box") {
-      resolveBoxBox(a, b);
-    } else {
-      const circle = a.shape === "circle" ? a : b;
-      const box    = a.shape === "circle" ? b : a;
-      resolveCircleBox(circle, box);
-    }
-  }
-
-  function tick() {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    floats.forEach(f => {
-      f.x += f.dx;
-      f.y += f.dy;
-      f.angle += f.dAngle;
-
-      if (f.x <= 0)        { f.x = 0;        f.dx =  Math.abs(f.dx); }
-      if (f.x + f.w >= vw) { f.x = vw - f.w; f.dx = -Math.abs(f.dx); }
-      if (f.y <= 0)        { f.y = 0;        f.dy =  Math.abs(f.dy); }
-      if (f.y + f.h >= vh) { f.y = vh - f.h; f.dy = -Math.abs(f.dy); }
+      ctx.beginPath();
+      ctx.arc(blob.x, blob.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
     });
 
-    for (let i = 0; i < floats.length; i++) {
-      for (let j = i + 1; j < floats.length; j++) {
-        resolveCollision(floats[i], floats[j]);
-      }
-    }
-
-    floats.forEach(f => {
-      f.el.style.left      = `${f.x}px`;
-      f.el.style.top       = `${f.y}px`;
-      f.el.style.right     = "auto";
-      f.el.style.bottom    = "auto";
-      f.el.style.transform = f.rotates ? `rotate(${f.angle}deg)` : "none";
-    });
-
-    requestAnimationFrame(tick);
+    requestAnimationFrame(draw);
   }
 
-  setTimeout(() => {
-    init();
-    requestAnimationFrame(tick);
-  }, 150);
+  resize();
+  initBlobs();
+  draw();
 
-  let resizeTimer;
   window.addEventListener("resize", () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(init, 200);
+    resize();
+    initBlobs();
   });
-
 })();

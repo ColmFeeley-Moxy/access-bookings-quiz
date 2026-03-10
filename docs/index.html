@@ -7,16 +7,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=7" />
+  <link rel="stylesheet" href="styles.css?v=8" />
 </head>
 
 <body>
-  <div class="floating" aria-hidden="true">
-    <img src="assets/HC51circelblue.png" class="float blue" alt="" />
-    <img src="assets/HC51circlegreen.png" class="float green" alt="" />
-    <img src="assets/HC51dots.png" class="float dots" alt="" />
-    <img src="assets/HC51orangeslash.png" class="float slash" alt="" />
-  </div>
+  <canvas id="auroraCanvas"></canvas>
 
   <main class="container">
     <div class="header-block">
@@ -38,15 +33,12 @@
           <input id="name" type="text" placeholder="e.g. Jane Smith" autocomplete="name" required />
           <span class="field-error" id="nameError"></span>
         </div>
-
         <div class="field-group">
           <label for="email">Work Email</label>
           <input id="email" type="email" placeholder="you@company.com" autocomplete="email" required />
           <span class="field-error" id="emailError"></span>
         </div>
-
         <div id="loginError" class="login-error" aria-live="polite"></div>
-
         <button type="submit" class="startBtn">
           <span>Start Quiz</span>
           <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -66,13 +58,11 @@
         </div>
         <div id="progress" class="progress-label">Question 1 of 10</div>
       </div>
-
       <div id="questionWrap" class="question-wrap">
         <div id="question" class="question-text"></div>
         <div id="choices" class="choices-grid"></div>
         <div id="feedback" class="feedback-text" aria-live="polite"></div>
       </div>
-
       <button id="nextBtn" class="startBtn" type="button" disabled>
         <span id="nextLabel">Next Question</span>
         <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -97,6 +87,6 @@
     </section>
   </main>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

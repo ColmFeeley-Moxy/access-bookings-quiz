@@ -12,7 +12,6 @@
   --wrong: #e05a6a;
   --wrong-bg: #fff0f2;
   --shadow: 0 24px 64px rgba(96, 60, 20, 0.18);
-  --shadow-sm: 0 4px 16px rgba(96, 60, 20, 0.10);
   --radius: 20px;
   --radius-sm: 12px;
   --transition: 0.18s ease;
@@ -29,6 +28,16 @@ body {
   color: var(--text-dark);
   overflow-x: hidden;
   min-height: 100vh;
+}
+
+/* ── Aurora Canvas ── */
+#auroraCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .hidden {
@@ -76,10 +85,13 @@ body {
 
 /* ── Card ── */
 .card {
-  background: var(--card);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   padding: 32px;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  border: 1px solid rgba(255,255,255,0.6);
 }
 
 .card-intro {
@@ -116,7 +128,7 @@ input[type="email"] {
   font-family: 'DM Sans', Arial, sans-serif;
   font-size: 15px;
   color: var(--text-dark);
-  background: #fdfaf7;
+  background: rgba(253, 250, 247, 0.9);
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
   outline: none;
 }
@@ -215,7 +227,7 @@ input.input-error {
 }
 
 .score-badge {
-  background: var(--bg);
+  background: rgba(243, 203, 152, 0.5);
   color: var(--orange-dark);
   font-weight: 700;
   font-size: 13px;
@@ -289,7 +301,7 @@ input.input-error {
   font-weight: 500;
   border-radius: var(--radius-sm);
   border: 1.5px solid #e6ddd6;
-  background: #fdfaf7;
+  background: rgba(253, 250, 247, 0.9);
   color: var(--text-dark);
   cursor: pointer;
   transition: border-color var(--transition), box-shadow var(--transition), background var(--transition), transform var(--transition);
@@ -310,7 +322,7 @@ input.input-error {
 
 .choice:hover:not(:disabled) {
   border-color: var(--orange);
-  background: #fff9f2;
+  background: rgba(255, 249, 242, 0.95);
   box-shadow: 0 2px 12px rgba(222, 153, 65, 0.15);
   transform: translateY(-1px);
 }
@@ -420,7 +432,7 @@ input.input-error {
 }
 
 .results-score-block {
-  background: var(--bg);
+  background: rgba(243, 203, 152, 0.4);
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
@@ -456,27 +468,6 @@ input.input-error {
   min-height: 20px;
   margin-bottom: 16px;
 }
-
-/* ── Floating assets ── */
-.floating {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.float {
-  position: absolute;
-  user-select: none;
-  will-change: transform;
-  mix-blend-mode: screen;
-}
-
-.blue  { width: min(28vw, 240px); opacity: 0.55; }
-.green { width: min(26vw, 220px); opacity: 0.50; }
-.dots  { width: min(18vw, 160px); opacity: 0.40; }
-.slash { width: min(48vw, 480px); opacity: 0.75; }
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
