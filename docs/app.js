@@ -1,17 +1,23 @@
 const loginSection = document.getElementById("login");
 const quizSection = document.getElementById("quiz");
+const resultsSection = document.getElementById("results");
 
 const loginForm = document.getElementById("loginForm");
 const nameInput = document.getElementById("name");
 const emailInput = document.getElementById("email");
+const nameError = document.getElementById("nameError");
+const emailError = document.getElementById("emailError");
 const loginError = document.getElementById("loginError");
 
 const welcomeEl = document.getElementById("welcome");
 const questionEl = document.getElementById("question");
+const questionWrap = document.getElementById("questionWrap");
 const choicesEl = document.getElementById("choices");
 const feedbackEl = document.getElementById("feedback");
 const nextBtn = document.getElementById("nextBtn");
+const nextLabel = document.getElementById("nextLabel");
 const progressEl = document.getElementById("progress");
+const progressFill = document.getElementById("progressFill");
 const scoreEl = document.getElementById("score");
 
 const API_BASE_URL = "https://zp13fu2v8g.execute-api.eu-west-2.amazonaws.com";
@@ -77,17 +83,17 @@ let score = 0;
 let activeQuestion = null;
 let answeredThisQuestion = false;
 
+// ── Helpers ──────────────────────────────────────────────
+
 function shuffleAnswers(question) {
   const answers = question.choices.map((text, index) => ({
     text,
     isCorrect: index === question.correctIndex,
   }));
-
   for (let i = answers.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [answers[i], answers[j]] = [answers[j], answers[i]];
   }
-
   return {
     ...question,
     choices: answers.map((a) => a.text),
@@ -100,38 +106,70 @@ function isValidEmail(email) {
 }
 
 function setScreen(which) {
-  if (which === "login") {
-    loginSection.classList.remove("hidden");
-    quizSection.classList.add("hidden");
-  } else {
-    loginSection.classList.add("hidden");
-    quizSection.classList.remove("hidden");
-  }
+  loginSection.classList.toggle("hidden", which !== "login");
+  quizSection.classList.toggle("hidden", which !== "quiz");
+  resultsSection.classList.toggle("hidden", which !== "results");
 }
 
-function updateMeta() {
+function getResultMessage(s, total) {
+  const pct = s / total;
+  if (pct === 1) return "Perfect score! You're a Hotel Co 51 expert. 🌟";
+  if (pct >= 0.8) return "Excellent work — you clearly know your brands!";
+  if (pct >= 0.6) return "Good effort! A little more time with the portfolio and you'll nail it.";
+  if (pct >= 0.4) return "A decent start — revisit the Hotel Co 51 brand guide to sharpen up.";
+  return "Worth another look at the brand portfolio before your next booking.";
+}
+
+function getResultEmoji(s, total) {
+  const pct = s / total;
+  if (pct === 1) return "🏆";
+  if (pct >= 0.8) return "🎉";
+  if (pct >= 0.5) return "👍";
+  return "💡";
+}
+
+// ── Progress ─────────────────────────────────────────────
+
+function updateProgress() {
+  const pct = ((currentIndex) / quiz.length) * 100;
+  progressFill.style.width = `${Math.max(pct, 5)}%`;
   progressEl.textContent = `Question ${currentIndex + 1} of ${quiz.length}`;
   scoreEl.textContent = `Score: ${score}`;
 }
 
+function popScore() {
+  scoreEl.classList.remove("pop");
+  void scoreEl.offsetWidth; // reflow to restart animation
+  scoreEl.classList.add("pop");
+  setTimeout(() => scoreEl.classList.remove("pop"), 300);
+}
+
+// ── Question rendering ────────────────────────────────────
+
 function renderQuestion() {
   answeredThisQuestion = false;
   feedbackEl.textContent = "";
+  feedbackEl.classList.remove("visible");
   nextBtn.disabled = true;
-  nextBtn.textContent = currentIndex === quiz.length - 1 ? "Finish" : "Next";
+  nextLabel.textContent = currentIndex === quiz.length - 1 ? "Finish Quiz" : "Next Question";
 
-  updateMeta();
+  updateProgress();
 
   activeQuestion = shuffleAnswers(quiz[currentIndex]);
-
   questionEl.textContent = activeQuestion.question;
   choicesEl.innerHTML = "";
+
+  // Animate question in
+  questionWrap.style.animation = "none";
+  void questionWrap.offsetWidth;
+  questionWrap.style.animation = "";
 
   activeQuestion.choices.forEach((text, i) => {
     const btn = document.createElement("button");
     btn.className = "choice";
     btn.type = "button";
     btn.textContent = text;
+    btn.style.animationDelay = `${i * 0.06}s`;
     btn.addEventListener("click", () => handleChoice(i));
     choicesEl.appendChild(btn);
   });
@@ -151,14 +189,18 @@ function handleChoice(selectedIndex) {
   if (selectedIndex === activeQuestion.correctIndex) {
     score += 1;
     feedbackEl.textContent = "✅ Correct!";
+    popScore();
   } else {
     buttons[selectedIndex].classList.add("wrong");
     feedbackEl.textContent = `❌ Correct answer: ${activeQuestion.choices[activeQuestion.correctIndex]}`;
   }
 
-  updateMeta();
+  scoreEl.textContent = `Score: ${score}`;
+  feedbackEl.classList.add("visible");
   nextBtn.disabled = false;
 }
+
+// ── Results & Save ────────────────────────────────────────
 
 async function saveResultToAWS() {
   const payload = {
@@ -167,70 +209,66 @@ async function saveResultToAWS() {
     score,
     quizVersion: QUIZ_VERSION,
   };
-
   const res = await fetch(SAVE_RESULTS_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-
-  if (res.status === 409) {
-    return { status: "already_submitted" };
-  }
-
+  if (res.status === 409) return { status: "already_submitted" };
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Save failed (${res.status}). ${text}`);
   }
-
   const data = await res.json().catch(() => ({}));
-  if (!data.success) {
-    throw new Error("Save failed (success=false).");
-  }
-
+  if (!data.success) throw new Error("Save failed (success=false).");
   return { status: "saved" };
 }
 
-async function renderResultsAndSave() {
-  progressEl.textContent = "Complete";
-  scoreEl.textContent = `Final score: ${score}/${quiz.length}`;
-  questionEl.textContent = "Quiz complete ✅";
-  choicesEl.innerHTML = "";
-  feedbackEl.textContent = `Thanks ${user.name}. Saving your result…`;
+async function showResults() {
+  // Fill results screen
+  document.getElementById("resultsIcon").textContent = getResultEmoji(score, quiz.length);
+  document.getElementById("resultsTitle").textContent = "Quiz Complete!";
+  document.getElementById("resultsSubtitle").textContent = `Well done, ${user.name}!`;
+  document.getElementById("resultsScoreNum").textContent = score;
+  document.getElementById("resultsScoreDenom").textContent = `/ ${quiz.length}`;
+  document.getElementById("resultsMsg").textContent = getResultMessage(score, quiz.length);
 
-  nextBtn.textContent = "Saving...";
-  nextBtn.disabled = true;
+  // Fill progress bar
+  progressFill.style.width = "100%";
+
+  setScreen("results");
+
+  const saveStatus = document.getElementById("saveStatus");
+  const learnMoreBtn = document.getElementById("learnMoreBtn");
+
+  saveStatus.textContent = "Saving your result…";
 
   try {
     const result = await saveResultToAWS();
-
     if (result.status === "already_submitted") {
-      feedbackEl.textContent = `Thanks ${user.name}. Our system shows you’ve already submitted this quiz. ✅`;
+      saveStatus.textContent = "ℹ️ Our records show you've already submitted this quiz.";
     } else {
-      feedbackEl.textContent = `Thanks ${user.name}. Your result has been saved. ✅`;
+      saveStatus.textContent = "✅ Your result has been saved.";
     }
-
-    nextBtn.textContent = "Learn more";
-    nextBtn.disabled = false;
-    nextBtn.onclick = () => window.open("https://hotelco51.com/", "_blank");
   } catch (err) {
-    feedbackEl.textContent = `We couldn’t save your result automatically. Please tell the organiser. (${err.message})`;
-    nextBtn.textContent = "Learn more";
-    nextBtn.disabled = false;
-    nextBtn.onclick = () => window.open("https://hotelco51.com/", "_blank");
+    saveStatus.textContent = `⚠️ Couldn't save automatically — please let the organiser know. (${err.message})`;
   }
+
+  learnMoreBtn.style.display = "flex";
+  learnMoreBtn.addEventListener("click", () => window.open("https://hotelco51.com/", "_blank"));
 }
 
-function startQuiz() {
-  currentIndex = 0;
-  score = 0;
-  activeQuestion = null;
-  answeredThisQuestion = false;
-  welcomeEl.textContent = `Welcome, ${user.name}`;
-  setScreen("quiz");
-  renderQuestion();
+// ── Login ────────────────────────────────────────────────
+
+function validateField(input, errorEl, test, msg) {
+  if (!test) {
+    input.classList.add("input-error");
+    errorEl.textContent = msg;
+    return false;
+  }
+  input.classList.remove("input-error");
+  errorEl.textContent = "";
+  return true;
 }
 
 loginForm.addEventListener("submit", (e) => {
@@ -240,31 +278,52 @@ loginForm.addEventListener("submit", (e) => {
   const name = nameInput.value.trim();
   const email = emailInput.value.trim().toLowerCase();
 
-  if (name.length < 2) {
-    loginError.textContent = "Please enter your full name.";
-    return;
-  }
+  const nameOk = validateField(nameInput, nameError, name.length >= 2, "Please enter your full name.");
+  const emailOk = validateField(emailInput, emailError, isValidEmail(email), "Please enter a valid email address.");
 
-  if (!isValidEmail(email)) {
-    loginError.textContent = "Please enter a valid email address.";
-    return;
-  }
+  if (!nameOk || !emailOk) return;
 
   user = { name, email };
   sessionStorage.setItem("quizUser", JSON.stringify(user));
   startQuiz();
 });
 
+// Inline validation on blur
+nameInput.addEventListener("blur", () => {
+  if (nameInput.value.trim()) {
+    validateField(nameInput, nameError, nameInput.value.trim().length >= 2, "Please enter your full name.");
+  }
+});
+emailInput.addEventListener("blur", () => {
+  if (emailInput.value.trim()) {
+    validateField(emailInput, emailError, isValidEmail(emailInput.value.trim()), "Please enter a valid email address.");
+  }
+});
+
+// ── Next / Finish ────────────────────────────────────────
+
 nextBtn.addEventListener("click", () => {
   if (nextBtn.disabled) return;
 
   if (currentIndex === quiz.length - 1) {
-    renderResultsAndSave();
+    showResults();
     return;
   }
 
   currentIndex += 1;
   renderQuestion();
 });
+
+// ── Start ────────────────────────────────────────────────
+
+function startQuiz() {
+  currentIndex = 0;
+  score = 0;
+  activeQuestion = null;
+  answeredThisQuestion = false;
+  welcomeEl.textContent = `Hi, ${user.name} 👋`;
+  setScreen("quiz");
+  renderQuestion();
+}
 
 setScreen("login");
